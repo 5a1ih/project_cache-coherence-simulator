@@ -25,6 +25,10 @@ public class Cache {
     
     public void write(int address) {
         int index = (address /lineSize)%numLines;
-        cacheLines[index] = new CacheLine(address, this.lineSize, this.numLines);
+        cacheLines[index] = new CacheLine(
+                address, 
+                this.lineSize, 
+                this.numLines
+        );
     }
 }
