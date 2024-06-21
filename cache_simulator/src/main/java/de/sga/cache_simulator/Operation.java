@@ -9,6 +9,6 @@ package de.sga.cache_simulator;
  * @author salih
  */
 public enum Operation {
-    WRITE,
-    READ
+    w,
+    r
 }
