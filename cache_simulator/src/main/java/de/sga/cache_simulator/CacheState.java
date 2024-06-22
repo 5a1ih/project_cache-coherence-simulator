@@ -9,8 +9,8 @@ package de.sga.cache_simulator;
  * @author salih
  */
 public enum CacheState {
-    M, //Modified
-    E, //Exclisive
-    S, //Shared
-    I //Invalid
+    MODIFIED, //Modified
+    EXCLUSIVE, //Exclisive
+    SHARED, //Shared
+    INVALID //Invalid
 }

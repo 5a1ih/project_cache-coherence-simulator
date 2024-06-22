@@ -11,16 +11,26 @@ package de.sga.cache_simulator;
 public class CacheLine {
     private int tag;
     private int offset;
-    private boolean valid;
-    private boolean dirty;
+    private int lineSize;
+    private int numLines;
     private int adresses[];
-    CacheState state;
-    
-    public CacheLine(int word, int lineSize, int numLines) {
-        loadWords(word, lineSize, numLines);
+    private CacheState state;
+
+    public CacheLine(int lineSize, int numLines) {
+        this.lineSize = lineSize;
+        this.numLines = numLines;
+        this.state = CacheState.INVALID;
+    }
+
+    public void setState(CacheState state) {
+        this.state = state;
+    }
+
+    public CacheState getState() {
+        return state;
     }
     
-    public void loadWords(int address, int lineSize, int numLines) {
+    public void loadWords(int address, CacheState state) {
         this.tag = address / (lineSize*numLines);
         this.offset = address % lineSize;
         
@@ -30,9 +40,14 @@ public class CacheLine {
         for (int i = 0; i < lineSize; i++) {
             this.adresses[i] = baseAdress+i;
         }
-        this.valid = true;
+        this.state = state;
     }
     
-    public void invalidateCacheLine() {}
-    public void updateCacheLine() {}
+    public boolean entryExists(int adress) {
+        return !(state == CacheState.INVALID) && tag == adress / (adresses.length * numLines);
+    }
+    
+    public void invalidate() {
+        this.state = CacheState.INVALID;
+    }
 }
