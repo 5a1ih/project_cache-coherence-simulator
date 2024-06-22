@@ -35,8 +35,8 @@ public class Bus {
         firePropertyChangeExceptRequester("busReadExclusive", requesterName, address);
     }
     
-    public void busUpdate(String requesterName, int address) {
-        firePropertyChangeExceptRequester("busUpdate", requesterName, address);
+    public void busUpgrade(String requesterName, int address) {
+        firePropertyChangeExceptRequester("busUpgrade", requesterName, address);
     }
     
     public void busWriteBack(String requesterName, int address) {
