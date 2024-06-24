@@ -23,6 +23,7 @@ public class Cache implements PropertyChangeListener{
     private CacheLine[] cacheLines;
     final private Bus bus;
     private ProtocolType protocolType;
+    private CacheLogger myLogger = CacheLogger.getLogger();
     
     private int writeHits;
     private int writeMiss;
@@ -41,16 +42,23 @@ public class Cache implements PropertyChangeListener{
         this.processorName = processorName;
         cacheLines = new CacheLine[this.numLines];
         this.protocolType = protocolType;
-        for(CacheLine cl : cacheLines) {
-            cl = new CacheLine(lineSize, numLines);
+        for (int i = 0; i < cacheLines.length; i++) {
+            cacheLines[i] = new CacheLine(lineSize, numLines);
         }
         this.bus = bus;
     }
     
+    public String getStats() {
+        return String.format("CPU (%s) Write hits (%s) Write miss (%s) Read hits (%s) Read miss (%s)", this.getProcessorName(),
+                String.valueOf(writeHits), String.valueOf(writeMiss), String.valueOf(readHits), String.valueOf(readMiss));
+    }
+    
     public void executeMemoryTrace(MemoryTrace memoryTrace) {
         if (memoryTrace.getOperation().equalsIgnoreCase("R")) {
+            myLogger.writeLog("Lesevorgang Prozessor " + memoryTrace.getProcessorName() + " Wort " + String.valueOf(memoryTrace.getAdress()));
             read(memoryTrace.getAdress());
         } else if (memoryTrace.getOperation().equalsIgnoreCase("W")) {
+            myLogger.writeLog("Schreibvorgang Prozessor " + memoryTrace.getProcessorName() + " Wort " + String.valueOf(memoryTrace.getAdress()));
             write(memoryTrace.getAdress());
         }
     }
@@ -98,6 +106,7 @@ public class Cache implements PropertyChangeListener{
                 writeHits++;
             } else if (line.getState() == CacheState.SHARED ||
                        (protocolType == ProtocolType.MESI && line.getState() == CacheState.EXCLUSIVE)) {
+                writeHits++;
                 bus.busUpgrade(processorName, address);
                 line.setState(CacheState.MODIFIED);
             } else {
