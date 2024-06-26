@@ -4,10 +4,6 @@
  */
 package de.sga.cache_simulator;
 
-import de.sga.cache_simulator.Bus;
-import de.sga.cache_simulator.CacheLine;
-import de.sga.cache_simulator.CacheState;
-import de.sga.cache_simulator.ProtocolType;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.util.ArrayList;
@@ -55,10 +51,13 @@ public class Cache implements PropertyChangeListener{
     
     public void executeMemoryTrace(MemoryTrace memoryTrace) {
         if (memoryTrace.getOperation().equalsIgnoreCase("R")) {
-            myLogger.writeLog("Lesevorgang Prozessor " + memoryTrace.getProcessorName() + " Wort " + String.valueOf(memoryTrace.getAdress()));
+            if (memoryTrace.getAdress() == 100 && memoryTrace.getProcessorName().equalsIgnoreCase("P2")) {
+                
+            }
+            myLogger.writeLog("\n\nLesevorgang Prozessor " + memoryTrace.getProcessorName() + " Wort " + String.valueOf(memoryTrace.getAdress()));
             read(memoryTrace.getAdress());
         } else if (memoryTrace.getOperation().equalsIgnoreCase("W")) {
-            myLogger.writeLog("Schreibvorgang Prozessor " + memoryTrace.getProcessorName() + " Wort " + String.valueOf(memoryTrace.getAdress()));
+            myLogger.writeLog("\n\nSchreibvorgang Prozessor " + memoryTrace.getProcessorName() + " Wort " + String.valueOf(memoryTrace.getAdress()));
             write(memoryTrace.getAdress());
         }
     }
@@ -70,55 +69,71 @@ public class Cache implements PropertyChangeListener{
     public void read(int address) {
         int index = (address /lineSize)%numLines;
         CacheLine line = cacheLines[index];
-        
+        myLogger.writeLog("Vorher:");
+        myLogger.writeLog(String.format("CPU: %s, Linestate: %s", this.getProcessorName(), line.getState().name()));
+
         if (line.entryExists(address)) {
-            if (line.getState() == CacheState.MODIFIED
-                    || line.getState() == CacheState.SHARED || (protocolType == ProtocolType.MESI
-                    && line.getState() == CacheState.EXCLUSIVE)) {
+            if (line.getState() == CacheState.MODIFIED || line.getState() == CacheState.SHARED ||
+                    (protocolType == ProtocolType.MESI && line.getState() == CacheState.EXCLUSIVE)) {
                 readHits++;
-            }else {
+                myLogger.writeLog(String.format("Read hit for word %s.", String.valueOf(address)));
+            } else {
+                myLogger.writeLog(String.format("Read miss for word %s.", String.valueOf(address)));
                 readMiss++;
-                bus.busRead(processorName, address);
                 if (protocolType == ProtocolType.MESI) {
+                    line.setState(CacheState.EXCLUSIVE);
                     line.loadWords(address, CacheState.EXCLUSIVE);
                 } else {
+                    line.setState(CacheState.SHARED);
                     line.loadWords(address, CacheState.SHARED);
                 }
+                bus.busRead(processorName, address);
             }
-            
-        }else {
+        } else {
+            myLogger.writeLog(String.format("Read miss for word %s.", String.valueOf(address)));
             readMiss++;
-            bus.busRead(processorName, address);
             if (protocolType == ProtocolType.MESI) {
+                line.setState(CacheState.EXCLUSIVE);
                 line.loadWords(address, CacheState.EXCLUSIVE);
             } else {
+                line.setState(CacheState.SHARED);
                 line.loadWords(address, CacheState.SHARED);
             }
+            bus.busRead(processorName, address);
         }
+        myLogger.writeLog("Nacher:");
+        myLogger.writeLog(String.format("CPU: %s, Linestate: %s", this.getProcessorName(), line.getState().name()));
     }
     
     public void write(int address) {
         int index = (address /lineSize)%numLines;
         CacheLine line = cacheLines[index];
-        
+        myLogger.writeLog("Vorher:");
+        myLogger.writeLog(String.format("CPU: %s, Linestate: %s", this.getProcessorName(), line.getState().name()));
         if (line.entryExists(address)) {
             if (line.getState() == CacheState.MODIFIED) {
+                myLogger.writeLog(String.format("Write hit for word %s.", String.valueOf(address)));
                 writeHits++;
             } else if (line.getState() == CacheState.SHARED ||
                        (protocolType == ProtocolType.MESI && line.getState() == CacheState.EXCLUSIVE)) {
+                myLogger.writeLog(String.format("Write hit for word %s.", String.valueOf(address)));
                 writeHits++;
-                bus.busUpgrade(processorName, address);
                 line.setState(CacheState.MODIFIED);
+                bus.busUpgrade(processorName, address);
             } else {
+                myLogger.writeLog(String.format("Write miss for word %s.", String.valueOf(address)));
                 writeMiss++;
-                bus.busReadExclusive(processorName, address);
                 line.loadWords(address, CacheState.MODIFIED);
+                bus.busReadExclusive(processorName, address);
             }
         } else {
+            myLogger.writeLog(String.format("Write miss for word %s.", String.valueOf(address)));
             writeMiss++;
-            bus.busReadExclusive(processorName, address);
             line.loadWords(address, CacheState.MODIFIED);
+            bus.busReadExclusive(processorName, address);
         }
+        myLogger.writeLog("Nacher:");
+        myLogger.writeLog(String.format("CPU: %s, Linestate: %s", this.getProcessorName(), line.getState().name()));
     }
 
     @Override
@@ -147,27 +162,29 @@ public class Cache implements PropertyChangeListener{
     private void handleBusRead(int address) {
         int index = (address / lineSize) % numLines;
         CacheLine line = cacheLines[index];
-
         if (line.entryExists(address)) {
             if (protocolType == ProtocolType.MESI) {
-                if (line.getState() == CacheState.MODIFIED) {
-                    if (protocolType == ProtocolType.MESI) {
-                        if (line.getState() == CacheState.MODIFIED) {
-                            line.setState(CacheState.SHARED);
-                            bus.busWriteBack(this.processorName, address);
-                        } else if (line.getState() == CacheState.EXCLUSIVE) {
-                            line.setState(CacheState.SHARED);
-                        }
+                switch (line.getState()) {
+                    case MODIFIED -> {
+                        line.setState(CacheState.SHARED);
+                        bus.busWriteBack(processorName, address);
                     }
+                    case EXCLUSIVE -> {
+                        line.setState(CacheState.SHARED);
+                        bus.busWriteBack(processorName, address);
+                    }
+                    case SHARED -> {
+                        bus.busWriteBack(processorName, address);
+                    }
+                    default -> throw new AssertionError();
                 }
-            }else if(protocolType == ProtocolType.MSI) {
+            } else if (protocolType == ProtocolType.MSI) {
                 if (line.getState() == CacheState.MODIFIED) {
                     line.setState(CacheState.SHARED);
-                    bus.busWriteBack(this.processorName, address);
+                    bus.busWriteBack(processorName, address);
                 }
             }
         }
-
     }
     
     private void handleBusReadExclusive(int address) {
