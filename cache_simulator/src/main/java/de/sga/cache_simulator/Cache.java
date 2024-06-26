@@ -1,16 +1,10 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package de.sga.cache_simulator;
 
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
-import java.util.ArrayList;
 
 /**
- *
- * @author salih
+ * Cache class that simulates cache behavior using the MSI and MESI protocols.
  */
 public class Cache implements PropertyChangeListener {
     private int numLines;
@@ -31,11 +25,11 @@ public class Cache implements PropertyChangeListener {
         this.lineSize = cacheLineSize;
         this.processorName = processorName;
         this.cacheLines = new CacheLine[this.numLines];
-        this.protocolType = protocolType;
         for (int i = 0; i < cacheLines.length; i++) {
             cacheLines[i] = new CacheLine(lineSize, numLines);
         }
         this.bus = bus;
+        this.protocolType = protocolType;
     }
 
     public String getStats() {
@@ -68,7 +62,7 @@ public class Cache implements PropertyChangeListener {
         myLogger.writeLog(String.format("CPU: %s, Line state: %s", this.processorName, line.getState().name()));
 
         if (line.entryExists(address)) {
-            handleReadHit(line, address);
+            handleReadHit(line);
         } else {
             handleReadMiss(line, address);
         }
@@ -76,27 +70,30 @@ public class Cache implements PropertyChangeListener {
         myLogger.writeLog(String.format("CPU: %s, Line state: %s", this.processorName, line.getState().name()));
     }
 
-    private void handleReadHit(CacheLine line, int address) {
+    private void handleReadHit(CacheLine line) {
         if (line.getState() == CacheState.MODIFIED || line.getState() == CacheState.SHARED ||
             (protocolType == ProtocolType.MESI && line.getState() == CacheState.EXCLUSIVE)) {
             readHits++;
-            myLogger.writeLog(String.format("Read hit for word %d.", address));
-        } else {
-            handleReadMiss(line, address);
+            myLogger.writeLog("Read hit.");
         }
     }
 
     private void handleReadMiss(CacheLine line, int address) {
         readMiss++;
-        myLogger.writeLog(String.format("Read miss for word %d.", address));
+        myLogger.writeLog("Read miss.");
         if (protocolType == ProtocolType.MESI) {
-            line.setState(CacheState.EXCLUSIVE);
-            line.loadWords(address, CacheState.EXCLUSIVE);
+            if (line.getState() == CacheState.INVALID) {
+                line.setState(CacheState.EXCLUSIVE);
+                bus.busRead(processorName, address);
+            } else {
+                line.setState(CacheState.SHARED);
+                bus.busRead(processorName, address);
+            }
         } else {
             line.setState(CacheState.SHARED);
-            line.loadWords(address, CacheState.SHARED);
+            bus.busRead(processorName, address);
         }
-        bus.busRead(processorName, address);
+        line.loadWords(address, line.getState());
     }
 
     public void write(int address) {
@@ -117,13 +114,13 @@ public class Cache implements PropertyChangeListener {
     private void handleWriteHit(CacheLine line, int address) {
         if (line.getState() == CacheState.MODIFIED) {
             writeHits++;
-            myLogger.writeLog(String.format("Write hit for word %d.", address));
+            myLogger.writeLog("Write hit.");
         } else if (line.getState() == CacheState.SHARED ||
                    (protocolType == ProtocolType.MESI && line.getState() == CacheState.EXCLUSIVE)) {
             writeHits++;
             line.setState(CacheState.MODIFIED);
             bus.busUpgrade(processorName, address);
-            myLogger.writeLog(String.format("Write hit for word %d, upgraded state.", address));
+            myLogger.writeLog("Write hit, upgraded state.");
         } else {
             handleWriteMiss(line, address);
         }
@@ -131,9 +128,20 @@ public class Cache implements PropertyChangeListener {
 
     private void handleWriteMiss(CacheLine line, int address) {
         writeMiss++;
-        line.loadWords(address, CacheState.MODIFIED);
-        bus.busReadExclusive(processorName, address);
-        myLogger.writeLog(String.format("Write miss for word %d.", address));
+        myLogger.writeLog("Write miss.");
+        if (protocolType == ProtocolType.MESI) {
+            if (line.getState() == CacheState.INVALID) {
+                line.setState(CacheState.MODIFIED);
+                bus.busReadExclusive(processorName, address);
+            } else {
+                line.setState(CacheState.SHARED);
+                bus.busReadExclusive(processorName, address);
+            }
+        } else {
+            line.setState(CacheState.MODIFIED);
+            bus.busReadExclusive(processorName, address);
+        }
+        line.loadWords(address, line.getState());
     }
 
     @Override
@@ -145,7 +153,6 @@ public class Cache implements PropertyChangeListener {
             case "busRead" -> handleBusRead(address);
             case "busReadExclusive" -> handleBusReadExclusive(address);
             case "busUpgrade" -> handleBusUpgrade(address);
-            case "busWriteBack" -> handleBusWriteBack(address);
             default -> {
             }
         }
@@ -170,6 +177,11 @@ public class Cache implements PropertyChangeListener {
                     }
                     default -> throw new AssertionError();
                 }
+            } else if (protocolType == ProtocolType.MSI) {
+                if (line.getState() == CacheState.MODIFIED) {
+                    line.setState(CacheState.SHARED);
+                    bus.busWriteBack(processorName, address);
+                }
             }
         }
     }
@@ -177,7 +189,6 @@ public class Cache implements PropertyChangeListener {
     private void handleBusReadExclusive(int address) {
         int index = (address / lineSize) % numLines;
         CacheLine line = cacheLines[index];
-
         if (line.entryExists(address)) {
             line.invalidate();
         }
@@ -186,18 +197,8 @@ public class Cache implements PropertyChangeListener {
     private void handleBusUpgrade(int address) {
         int index = (address / lineSize) % numLines;
         CacheLine line = cacheLines[index];
-
         if (line.entryExists(address)) {
             line.invalidate();
-        }
-    }
-
-    private void handleBusWriteBack(int address) {
-        int index = (address / lineSize) % numLines;
-        CacheLine line = cacheLines[index];
-
-        if (line.entryExists(address)) {
-            line.setState(CacheState.SHARED);
         }
     }
 }
