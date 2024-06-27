@@ -15,7 +15,7 @@ import org.apache.commons.cli.ParseException;
 public class Controller {
     public static void main(String[] args) {
         try {
-            CacheCoherenceSimulator cacheCoherenceSimulator = new CacheCoherenceSimulator(args);
+            new CacheCoherenceSimulator(args);
         } catch (ParseException ex) {
             Logger.getLogger(Controller.class.getName()).log(Level.SEVERE, null, ex);
         }

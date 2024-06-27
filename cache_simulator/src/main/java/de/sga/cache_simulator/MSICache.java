@@ -6,34 +6,9 @@ import java.beans.PropertyChangeListener;
 /**
  * MSICache class that simulates cache behavior using the MSI protocol.
  */
-public class MSICache implements PropertyChangeListener, Cache {
-    private int numLines;
-    private int lineSize;
-    private String processorName;
-    private CacheLine[] cacheLines;
-    private final Bus bus;
-    private CacheLogger myLogger = CacheLogger.getLogger();
-
-    private int writeHits;
-    private int writeMiss;
-    private int readHits;
-    private int readMiss;
-
+public class MSICache extends Cache {
     public MSICache(int numLines, int cacheLineSize, String processorName, Bus bus) {
-        this.numLines = numLines;
-        this.lineSize = cacheLineSize;
-        this.processorName = processorName;
-        this.cacheLines = new CacheLine[this.numLines];
-        for (int i = 0; i < cacheLines.length; i++) {
-            cacheLines[i] = new CacheLine(lineSize, numLines);
-        }
-        this.bus = bus;
-    }
-
-    @Override
-    public String getStats() {
-        return String.format("CPU (%s) Write hits (%d) Write miss (%d) Read hits (%d) Read miss (%d)", 
-                this.processorName, writeHits, writeMiss, readHits, readMiss);
+        super(numLines, cacheLineSize, processorName, bus);
     }
 
     @Override
@@ -49,11 +24,6 @@ public class MSICache implements PropertyChangeListener, Cache {
             myLogger.writeLog(String.format("\n\nWrite operation Processor %s Word %d", processor, address));
             write(address);
         }
-    }
-
-    @Override
-    public String getProcessorName() {
-        return processorName;
     }
 
     public void read(int address) {
@@ -153,6 +123,9 @@ public class MSICache implements PropertyChangeListener, Cache {
         CacheLine line = cacheLines[index];
         if (line.entryExists(address)) {
             line.invalidate();
+            invalidations++;
+            myLogger.writeInvalidationLog(String.format("Ein Lesevorgang von Prozessor %s zu Wort %d suchte nach Tag %d in Cache-Line %d, wurde in diesem Cache im Status Invalid (Cache-Miss) gefunden.",
+                this.processorName, address, line.getTag(), index));
         }
     }
 
@@ -161,16 +134,9 @@ public class MSICache implements PropertyChangeListener, Cache {
         CacheLine line = cacheLines[index];
         if (line.entryExists(address)) {
             line.invalidate();
+            invalidations++;
+            myLogger.writeInvalidationLog(String.format("Ein Lesevorgang von Prozessor %s zu Wort %d suchte nach Tag %d in Cache-Line %d, wurde in diesem Cache im Status Invalid (Cache-Miss) gefunden.",
+                this.processorName, address, line.getTag(), index));
         }
-    }
-
-    @Override
-    public String getContent() {
-        for (int i = 0; i>cacheLines.length; i++) {
-            if (!(cacheLines[i].isEmpty())) {
-                System.err.println(String.format("%s: %s %s %s", getProcessorName(),  String.valueOf(i), String.valueOf(cacheLines[i].getTag()), cacheLines[i].getState().name()));
-            }
-        }
-        return null;
     }
 }

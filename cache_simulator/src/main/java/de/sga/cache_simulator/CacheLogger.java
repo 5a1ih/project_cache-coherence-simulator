@@ -13,9 +13,9 @@ import java.util.ArrayList;
 public class CacheLogger {
     private static CacheLogger instance;
     private boolean verbose = true;
-    private boolean content;
-    private boolean hitRate;
-    private boolean invalidationRate;
+    private boolean content = false;
+    private boolean hitRate = false;
+    private boolean invalidationRate = false;
     
     private CacheLogger() {};
     
@@ -28,19 +28,18 @@ public class CacheLogger {
     
     public void executeOption(String option) {
         if (option.equalsIgnoreCase("verbose") || option.equalsIgnoreCase("v")) {
-            if (verbose==false) {
-                verbose=true;
-            }else if(verbose == true) {
-                verbose = false;
-            }
+            verbose = verbose != true;
         }else if (option.equalsIgnoreCase("c")) {
+            content = content != true;
             for (Cache cache : CacheFactory.getCaches()) {
                 cache.getContent();
             }
         }else if (option.equalsIgnoreCase("h")) {
-            for (Cache cache : CacheFactory.getCaches()) {
-                printStats(cache);
-            }
+            hitRate = hitRate != true;
+            printStatsByList(CacheFactory.getCaches());
+        }else if(option.equalsIgnoreCase("i")) {
+            invalidationRate = invalidationRate != true;
+            printInvalidationsByList(CacheFactory.getCaches());
         }
     }
     public void writeLog(String message) {
@@ -48,8 +47,23 @@ public class CacheLogger {
             System.out.println(message);
     }
     
+    public void writeInvalidationLog(String message) {
+        if(invalidationRate==true)
+            System.out.println(message);
+    }
+    
     public void printStats(Cache cache) {
         writeLog("Print stats for: " + cache.getStats());
+    }
+    
+    public void printInvalidations(Cache cache) {
+        writeLog(String.format("Print invalidations for %s: %s", cache.getProcessorName(), cache.getInvalidations()));
+    }
+    
+    public void printInvalidationsByList(ArrayList<Cache> caches) {
+        for (Cache cache : caches) {
+            printInvalidations(cache);
+        }
     }
     
     public void printStatsByList(ArrayList<Cache> caches) {

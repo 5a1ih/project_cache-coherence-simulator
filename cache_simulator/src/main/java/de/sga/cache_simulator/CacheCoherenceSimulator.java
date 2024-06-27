@@ -14,10 +14,14 @@ import org.apache.commons.cli.*;
  */
 public class CacheCoherenceSimulator {
     CacheLogger myLogger = CacheLogger.getLogger();
-    String traceFile = "C:\\Users\\salih\\Documents\\NetBeansProjects\\project_cache-coherence-simulator\\trace5.txt";
+    String traceFile;
+    private boolean verboseFlag;
+    private boolean contentFlag;
+    private boolean hitRateFlag;
+    private boolean invalidationRateFlag;
 
     public CacheCoherenceSimulator(String[] args) throws ParseException {
-        //setOptions(args);
+        setOptions(args);
         myLogger.writeLog("Init bus...");
         Bus bus = new Bus();
         ArrayList<Cache> caches = new ArrayList<>();
@@ -61,24 +65,41 @@ public class CacheCoherenceSimulator {
                 }
             }
             myLogger.printStatsByList(caches);
+            evaluateFlagsAtEnd(caches);
         } catch (IOException e) {
             System.err.println(e.getMessage());
         }
     }
 
-    void setOptions(String[] args) throws ParseException {
+    final void setOptions(String[] args) throws ParseException {
         Options options = new Options();
-        Option file = createOption("f", "file", "FILE", "Tracedatei für die Ausführung der Simulation", true);
-        Option verbose = createOption("v", "verbose", "VERBOSE", "Zeilenweise Erklärung", false);
-        options.addOption(file).addOption(verbose);
+        Option file = createOption("f", "file", "FILE", "Tracedatei für die Ausführung der Simulation.", true);
+        Option verbose = createFlag("v", "verbose", "Zeilenweise Erklärung.");
+        Option content = createFlag("c", "content", "Ausgabe Inhalt der Caches.");
+        Option hitRate = createFlag("h", "hit-rate", "Ausgabe Treffer/Misses.");
+        Option invalidationRate = createFlag("i", "invalidation-rate", "Ausgabe Invalidierungsstatistiken der Caches");
+        options.addOption(file).addOption(verbose).addOption(content).addOption(hitRate).addOption(invalidationRate);
         
         CommandLineParser parser = new DefaultParser();
         CommandLine cmd = parser.parse(options, args);
         
-        traceFile = cmd.getOptionValue(file);
+        traceFile = cmd.getOptionValue(file).replace("\\", "\\\\");
         
         if (cmd.hasOption(verbose)) {
-            myLogger.executeOption(verbose.getLongOpt());
+            myLogger.executeOption(verbose.getOpt());
+            verboseFlag = true;
+        }
+        if (cmd.hasOption(content)) {
+            myLogger.executeOption(content.getOpt());
+            contentFlag = true;
+        }
+        if (cmd.hasOption(hitRate)) {
+            myLogger.executeOption(hitRate.getOpt());
+            hitRateFlag = true;
+        }
+        if (cmd.hasOption(invalidationRate)) {
+            myLogger.executeOption(invalidationRate.getOpt());
+            invalidationRateFlag = true;
         }
     }
     
@@ -90,5 +111,30 @@ public class CacheCoherenceSimulator {
                 .hasArg()
                 .required(required)
                 .build();
+    }
+    
+    Option createFlag(String shortName, String longName, String description) {
+        return Option.builder(shortName)
+                .longOpt(longName)
+                .desc(description)
+                .required(false)
+                .hasArg(false)  // Ensure the flag does not take an argument
+                .build();
+    }
+    
+    void evaluateFlagsAtEnd(List<Cache> caches) {
+        System.out.println("\n\n");
+        if (verboseFlag) {
+            myLogger.executeOption("i");
+        }
+        if (contentFlag) {
+            myLogger.executeOption("c");
+        }
+        if (hitRateFlag) {
+            myLogger.printStatsByList(CacheFactory.getCaches());
+        }
+        if (invalidationRateFlag) {
+            myLogger.executeOption("i");
+        }
     }
 }
