@@ -19,6 +19,10 @@ public class CacheCoherenceSimulator {
     private boolean contentFlag;
     private boolean hitRateFlag;
     private boolean invalidationRateFlag;
+    
+    private int numCacheLineSize;
+    private int numCacheLines;
+    private ProtocolType type;
 
     public CacheCoherenceSimulator(String[] args) throws ParseException {
         setOptions(args);
@@ -26,7 +30,7 @@ public class CacheCoherenceSimulator {
         Bus bus = new Bus();
         ArrayList<Cache> caches = new ArrayList<>();
         for (int i = 0; i < 4; i++) {
-            Cache cache = CacheFactory.createCache(ProtocolType.MESI, 1024, 2, String.format("P%s", String.valueOf(i)), bus);
+            Cache cache = CacheFactory.createCache(type, numCacheLines, numCacheLineSize, String.format("P%d", i), bus);
             caches.add(cache);
             bus.addListener(cache);
         }
@@ -74,16 +78,38 @@ public class CacheCoherenceSimulator {
     final void setOptions(String[] args) throws ParseException {
         Options options = new Options();
         Option file = createOption("f", "file", "FILE", "Tracedatei für die Ausführung der Simulation.", true);
+        Option cacheLines = createOption("cl", "cache-line", "CACHE-LINE", "Anzahl cache lines.", true);
+        Option cacheLineSize = createOption("cls", "cache-line-size", "CACHE-LINE-SIZE", "Größe cache line.", true);
+        Option protocolType = createOption("p", "protocol-type", "PROTOCOL-TYPE", "Protokoltyp.", true);
         Option verbose = createFlag("v", "verbose", "Zeilenweise Erklärung.");
         Option content = createFlag("c", "content", "Ausgabe Inhalt der Caches.");
         Option hitRate = createFlag("h", "hit-rate", "Ausgabe Treffer/Misses.");
         Option invalidationRate = createFlag("i", "invalidation-rate", "Ausgabe Invalidierungsstatistiken der Caches");
-        options.addOption(file).addOption(verbose).addOption(content).addOption(hitRate).addOption(invalidationRate);
+        options.addOption(file).addOption(verbose).addOption(content).addOption(hitRate).addOption(invalidationRate).addOption(cacheLines).addOption(cacheLineSize).addOption(protocolType);
         
         CommandLineParser parser = new DefaultParser();
         CommandLine cmd = parser.parse(options, args);
         
         traceFile = cmd.getOptionValue(file).replace("\\", "\\\\");
+        
+        if (cmd.hasOption(cacheLines)) {
+            numCacheLines = Integer.parseInt(cmd.getOptionValue("cl"));
+        }
+        
+        if (cmd.hasOption(cacheLines)) {
+            numCacheLineSize = Integer.parseInt(cmd.getOptionValue("cls"));
+        }
+        
+        if (cmd.hasOption(protocolType)) {
+            String opt = cmd.getOptionValue("p");
+            if (opt.equals("mesi")) {
+                this.type = ProtocolType.MESI;
+            }else if (opt.equalsIgnoreCase("msi")) {
+                this.type = ProtocolType.MSI;
+            } else {
+                throw new RuntimeException("Protocol incorrect. Check your input. Supported input [msi | mesi]");
+            }
+        }
         
         if (cmd.hasOption(verbose)) {
             myLogger.executeOption(verbose.getOpt());
