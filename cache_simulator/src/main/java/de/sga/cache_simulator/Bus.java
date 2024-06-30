@@ -43,6 +43,19 @@ public class Bus {
         firePropertyChangeExceptRequester("busWriteBack", requesterName, address);
     }
     
+    public boolean busHasline(String requesterName, int address) {
+        for(PropertyChangeListener listener : pcs.getPropertyChangeListeners()) {
+                if (!(listener instanceof MESICache)) {
+                    continue;
+                }
+                MESICache cache = (MESICache) listener;
+                if (!(cache.getProcessorName().equalsIgnoreCase(requesterName)) && cache.hasLine(address)) {
+                    return true;
+                }
+            }
+        return false;
+    }
+    
     private void firePropertyChangeExceptRequester(String propertyName, String requesterName, int address) {
         for(PropertyChangeListener listener : pcs.getPropertyChangeListeners()) {
             if (!(listener instanceof Cache)) {

@@ -13,6 +13,7 @@ import java.io.*;
  */
 public class MemoryTraceList {
     String filepath;
+    CacheLogger myLogger = CacheLogger.getLogger();
     
     public MemoryTraceList(String filepath) {
         this.filepath = filepath;
@@ -25,6 +26,11 @@ public class MemoryTraceList {
         String line;
         ArrayList<MemoryTrace> traces = new ArrayList<>();
         while ((line = reader.readLine()) != null) {
+            if (line.length() == 1) {
+                myLogger.executeOption(line);
+                traces.add(new MemoryTrace(line, line, -1));
+                continue;
+            }
             String[] parts = line.split(" ");
             traces.add(new MemoryTrace(parts[0], parts[1], Integer.parseInt(parts[2])));
         }

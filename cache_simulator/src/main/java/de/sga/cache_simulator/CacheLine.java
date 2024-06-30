@@ -15,7 +15,11 @@ public class CacheLine {
     private int numLines;
     private int adresses[];
     private CacheState state;
-
+    
+    public int getTag() {
+        return tag;
+    }
+    
     public CacheLine(int lineSize, int numLines) {
         this.lineSize = lineSize;
         this.numLines = numLines;
@@ -44,10 +48,17 @@ public class CacheLine {
     }
     
     public boolean entryExists(int adress) {
-        return !(state == CacheState.INVALID) && tag == adress / (adresses.length * numLines);
+        return !(state == CacheState.INVALID) && tag == adress / (lineSize * numLines);
     }
     
     public void invalidate() {
         this.state = CacheState.INVALID;
+    }
+    
+    public boolean isEmpty() {
+        if (adresses != null && lineSize >0) {
+            return false;
+        }
+        return true;
     }
 }
