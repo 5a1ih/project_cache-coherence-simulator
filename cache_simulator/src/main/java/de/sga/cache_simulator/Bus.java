@@ -49,8 +49,8 @@ public class Bus {
                     continue;
                 }
                 MESICache cache = (MESICache) listener;
-                if (!(cache.getProcessorName().equalsIgnoreCase(requesterName))) {
-                    return cache.hasLine(address);
+                if (!(cache.getProcessorName().equalsIgnoreCase(requesterName)) && cache.hasLine(address)) {
+                    return true;
                 }
             }
         return false;

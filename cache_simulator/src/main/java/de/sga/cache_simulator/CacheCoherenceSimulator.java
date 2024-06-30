@@ -15,16 +15,20 @@ import org.apache.commons.cli.*;
 public class CacheCoherenceSimulator {
     CacheLogger myLogger = CacheLogger.getLogger();
     String traceFile;
-    private boolean verboseFlag;
-    private boolean contentFlag;
-    private boolean hitRateFlag;
-    private boolean invalidationRateFlag;
+    private boolean verboseFlag = false;
+    private boolean contentFlag = false;
+    private boolean hitRateFlag = false;
+    private boolean invalidationRateFlag = false;
     
     private int numCacheLineSize;
     private int numCacheLines;
     private ProtocolType type;
 
     public CacheCoherenceSimulator(String[] args) throws ParseException {
+        runSimulation(args);
+    }
+
+    private void runSimulation(String[] args) throws ParseException {
         setOptions(args);
         myLogger.writeLog("Init bus...");
         Bus bus = new Bus();
@@ -68,7 +72,6 @@ public class CacheCoherenceSimulator {
                     default -> {}
                 }
             }
-            myLogger.printStatsByList(caches);
             evaluateFlagsAtEnd(caches);
         } catch (IOException e) {
             System.err.println(e.getMessage());
@@ -78,8 +81,8 @@ public class CacheCoherenceSimulator {
     final void setOptions(String[] args) throws ParseException {
         Options options = new Options();
         Option file = createOption("f", "file", "FILE", "Tracedatei für die Ausführung der Simulation.", true);
-        Option cacheLines = createOption("cl", "cache-line", "CACHE-LINE", "Anzahl cache lines.", true);
-        Option cacheLineSize = createOption("cls", "cache-line-size", "CACHE-LINE-SIZE", "Größe cache line.", true);
+        Option cacheLines = createOption("cl", "cache-line", "CACHE-LINE", "Anzahl cache lines.", false);
+        Option cacheLineSize = createOption("cls", "cache-line-size", "CACHE-LINE-SIZE", "Größe cache line.", false);
         Option protocolType = createOption("p", "protocol-type", "PROTOCOL-TYPE", "Protokoltyp.", true);
         Option verbose = createFlag("v", "verbose", "Zeilenweise Erklärung.");
         Option content = createFlag("c", "content", "Ausgabe Inhalt der Caches.");
@@ -94,10 +97,14 @@ public class CacheCoherenceSimulator {
         
         if (cmd.hasOption(cacheLines)) {
             numCacheLines = Integer.parseInt(cmd.getOptionValue("cl"));
+        } else {
+            numCacheLines = 512;
         }
         
         if (cmd.hasOption(cacheLines)) {
             numCacheLineSize = Integer.parseInt(cmd.getOptionValue("cls"));
+        }else {
+            numCacheLineSize = 4;
         }
         
         if (cmd.hasOption(protocolType)) {
@@ -116,11 +123,9 @@ public class CacheCoherenceSimulator {
             verboseFlag = true;
         }
         if (cmd.hasOption(content)) {
-            myLogger.executeOption(content.getOpt());
             contentFlag = true;
         }
         if (cmd.hasOption(hitRate)) {
-            myLogger.executeOption(hitRate.getOpt());
             hitRateFlag = true;
         }
         if (cmd.hasOption(invalidationRate)) {
@@ -150,16 +155,13 @@ public class CacheCoherenceSimulator {
     
     void evaluateFlagsAtEnd(List<Cache> caches) {
         System.out.println("\n\n");
-        if (verboseFlag) {
-            myLogger.executeOption("i");
-        }
-        if (contentFlag) {
+        if (contentFlag == true) {
             myLogger.executeOption("c");
         }
-        if (hitRateFlag) {
+        if (hitRateFlag == true) {
             myLogger.printStatsByList(CacheFactory.getCaches());
         }
-        if (invalidationRateFlag) {
+        if (invalidationRateFlag == true) {
             myLogger.executeOption("i");
         }
     }

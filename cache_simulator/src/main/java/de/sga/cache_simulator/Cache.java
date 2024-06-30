@@ -18,11 +18,19 @@ public abstract class Cache implements PropertyChangeListener{
     protected final Bus bus;
     protected CacheLogger myLogger = CacheLogger.getLogger();
 
-    protected int writeHits;
-    protected int writeMiss;
-    protected int readHits;
-    protected int readMiss;
-    protected int invalidations;
+    protected int writeHits = 0;
+    protected int writeMiss = 0;
+    protected int readHits = 0;
+    protected int readMiss = 0;
+    protected int invalidations = 0;
+    
+    protected int modifiedWriteHits = 0;
+    protected int exclusiveWriteHits = 0;
+    protected int sharedWriteHits = 0;
+    
+    protected int modifiedReadHits = 0;
+    protected int exclusiveReadHits = 0;
+    protected int sharedReadHits = 0;
     
     public Cache(int numLines, int cacheLineSize, String processorName, Bus bus) {
         this.numLines = numLines;
@@ -33,12 +41,11 @@ public abstract class Cache implements PropertyChangeListener{
             cacheLines[i] = new CacheLine(lineSize, numLines);
         }
         this.bus = bus;
-        this.invalidations = 0;
     }
    
     public String getStats() {
-        return String.format("CPU (%s) Write hits (%d) Write miss (%d) Read hits (%d) Read miss (%d) Invalidations (%d)",
-                this.processorName, writeHits, writeMiss, readHits, readMiss, invalidations);
+        return String.format("CPU {%s}\nWrite hits {%d}[MODIFIED {%d} | Exclusive(MESI) {%d} | SHARED {%d}] Write miss {%d}\nRead hits {%d}[MODIFIED {%d} | Exclusive(MESI) {%d} | SHARED {%d}] Read miss {%d} Invalidations {%d}\n",
+                this.processorName, writeHits, modifiedWriteHits, exclusiveWriteHits, sharedWriteHits, writeMiss, readHits, modifiedReadHits, exclusiveReadHits, sharedReadHits, readMiss, invalidations);
     }
     public String getProcessorName() {
         return processorName;
@@ -47,7 +54,7 @@ public abstract class Cache implements PropertyChangeListener{
     public String getContent() {
         for (int i = 0; i<cacheLines.length; i++) {
             if (!(cacheLines[i].isEmpty())) {
-                System.out.println(String.format("%s %s %s", String.valueOf(i), String.valueOf(cacheLines[i].getTag()), cacheLines[i].getState().name())); 
+                System.out.println(String.format("%s: %s %s %s", processorName, String.valueOf(i), String.valueOf(cacheLines[i].getTag()), cacheLines[i].getState().name())); 
             }
         }
         return null;

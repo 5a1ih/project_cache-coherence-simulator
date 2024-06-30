@@ -12,7 +12,7 @@ import java.util.ArrayList;
  */
 public class CacheLogger {
     private static CacheLogger instance;
-    private boolean verbose = true;
+    private boolean verbose = false;
     private boolean content = false;
     private boolean hitRate = false;
     private boolean invalidationRate = false;
@@ -30,12 +30,10 @@ public class CacheLogger {
         if (option.equalsIgnoreCase("verbose") || option.equalsIgnoreCase("v")) {
             verbose = verbose != true;
         }else if (option.equalsIgnoreCase("c")) {
-            content = content != true;
             for (Cache cache : CacheFactory.getCaches()) {
                 cache.getContent();
             }
         }else if (option.equalsIgnoreCase("h")) {
-            hitRate = hitRate != true;
             printStatsByList(CacheFactory.getCaches());
         }else if(option.equalsIgnoreCase("i")) {
             invalidationRate = invalidationRate != true;
@@ -53,11 +51,11 @@ public class CacheLogger {
     }
     
     public void printStats(Cache cache) {
-        writeLog("Print stats for: " + cache.getStats());
+        System.out.println("Print stats for: " + cache.getStats());
     }
     
     public void printInvalidations(Cache cache) {
-        writeLog(String.format("Print invalidations for %s: %s", cache.getProcessorName(), cache.getInvalidations()));
+        System.out.println(String.format("Print invalidations for %s: %s", cache.getProcessorName(), cache.getInvalidations()));
     }
     
     public void printInvalidationsByList(ArrayList<Cache> caches) {

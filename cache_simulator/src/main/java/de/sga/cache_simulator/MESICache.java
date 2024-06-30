@@ -42,9 +42,24 @@ public class MESICache extends Cache {
     }
 
     private void handleReadHit(CacheLine line) {
-        if (line.getState() == CacheState.MODIFIED || line.getState() == CacheState.SHARED || line.getState() == CacheState.EXCLUSIVE) {
-            readHits++;
-            myLogger.writeLog("Read hit.");
+        switch (line.getState()) {
+            case MODIFIED -> {
+                modifiedReadHits++;
+                readHits++;
+                myLogger.writeLog("Read hit (Modified).");
+            }
+            case EXCLUSIVE -> {
+                exclusiveReadHits++;
+                readHits++;
+                myLogger.writeLog("Read hit (Exclusive).");
+            }
+            case SHARED -> {
+                sharedReadHits++;
+                readHits++;
+                myLogger.writeLog("Read hit (Shared).");
+            }
+            default -> {
+            }
         }
     }
 
@@ -80,16 +95,19 @@ public class MESICache extends Cache {
             handleWriteMiss(line, address);
         } else switch (line.getState()) {
             case MODIFIED -> {
+                modifiedWriteHits++;
                 writeHits++;
                 myLogger.writeLog("Write hit.");
             }
             case SHARED -> {
+                sharedWriteHits++;
                 writeHits++;
                 line.setState(CacheState.MODIFIED);
                 bus.busUpgrade(processorName, address);
                 myLogger.writeLog("Write hit, upgraded state.");
             }
             case EXCLUSIVE -> {
+                exclusiveWriteHits++;
                 writeHits++;
                 line.setState(CacheState.MODIFIED);
                 myLogger.writeLog("Write hit, upgraded state.");
@@ -159,8 +177,8 @@ public class MESICache extends Cache {
         if (line.entryExists(address)) {
             invalidations++;
             line.invalidate();
-            myLogger.writeInvalidationLog(String.format("Ein Lesevorgang von Prozessor %s zu Wort %d suchte nach Tag %d in Cache-Line %d, wurde in diesem Cache im Status Invalid (Cache-Miss) gefunden.",
-                this.processorName, address, line.getTag(), index));
+            myLogger.writeInvalidationLog(String.format("Wort %d wurde in Prozessor %s gefunden in CacheLine %d mit Tag %d --> Invaliderung...",
+                address, this.processorName, index, line.getTag()));
         }
     }
 
