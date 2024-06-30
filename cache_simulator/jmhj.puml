@@ -1,0 +1,24 @@
+@startuml
+abstract class de.sga.cache_simulator.Cache
+class de.sga.cache_simulator.Bus
+class de.sga.cache_simulator.CacheCoherenceSimulator
+class de.sga.cache_simulator.CacheFactory
+class de.sga.cache_simulator.CacheLine
+class de.sga.cache_simulator.CacheLogger
+class de.sga.cache_simulator.Controller
+class de.sga.cache_simulator.MESICache
+class de.sga.cache_simulator.MSICache
+class de.sga.cache_simulator.MemoryTrace
+class de.sga.cache_simulator.MemoryTraceList
+class java.beans.PropertyChangeEvent
+class java.beans.PropertyChangeSupport
+class java.io.IOException
+class java.util.ArrayList
+class java.util.List
+class java.util.logging.Level
+class java.util.logging.Logger
+class org.apache.commons.cli.ParseException
+enum de.sga.cache_simulator.CacheState
+enum de.sga.cache_simulator.Operation
+enum de.sga.cache_simulator.ProtocolType
+@enduml

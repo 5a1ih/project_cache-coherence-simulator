@@ -164,10 +164,9 @@ public class MESICache extends Cache {
         int index = (address / lineSize) % numLines;
         CacheLine line = cacheLines[index];
         if (line.entryExists(address)) {
+            myLogger.writeInvalidationLog(address, this.processorName, index, line.getTag(), line.getState().name());
             line.invalidate();
             invalidations++;
-            myLogger.writeInvalidationLog(String.format("Ein Lesevorgang von Prozessor %s zu Wort %d suchte nach Tag %d in Cache-Line %d, wurde in diesem Cache im Status Invalid (Cache-Miss) gefunden.",
-                this.processorName, address, line.getTag(), index));
         }
     }
 
@@ -175,10 +174,9 @@ public class MESICache extends Cache {
         int index = (address / lineSize) % numLines;
         CacheLine line = cacheLines[index];
         if (line.entryExists(address)) {
+            myLogger.writeInvalidationLog(address, this.processorName, index, line.getTag(), line.getState().name());
             invalidations++;
             line.invalidate();
-            myLogger.writeInvalidationLog(String.format("Wort %d wurde in Prozessor %s gefunden in CacheLine %d mit Tag %d --> Invaliderung...",
-                address, this.processorName, index, line.getTag()));
         }
     }
 

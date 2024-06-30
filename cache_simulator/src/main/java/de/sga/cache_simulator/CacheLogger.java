@@ -45,9 +45,10 @@ public class CacheLogger {
             System.out.println(message);
     }
     
-    public void writeInvalidationLog(String message) {
+    public void writeInvalidationLog(int address, String processorName, int index, int tag, String state) {
         if(invalidationRate==true)
-            System.out.println(message);
+            System.out.println(String.format("Wort %d wurde im Cache von Prozessor %s in CacheLine %d mit Tag %d und im Zusatnd %s gefunden --> Invaliderung...",
+                address, processorName, index, tag, state));
     }
     
     public void printStats(Cache cache) {
